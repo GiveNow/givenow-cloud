@@ -1,0 +1,10 @@
+{
+  "applications": {
+    "_default": {
+      "link": "givenow-dev"
+    },
+    "givenow-dev": {
+      "applicationId": "WIwzvqO3fuIZl3IAJ1Rar1A4b9ue6Y4KSInyDABH"
+    }
+  }
+}
