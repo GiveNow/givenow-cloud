@@ -20,8 +20,15 @@ Parse.Cloud.define("claimPickupRequest", function (req, res) {
             Parse.Object.saveAll([pickupRequest, volunteer]).then(function () {
                 volunteerName = volunteer.get("name") || "A volunteer";
                 generatePushToUser(donor,
-                    "Is your donation ready?",
-                    volunteerName + " wants to pick up your donation. Confirm?",
+                    {
+                        "loc-key": "notif_volunteer_confirmed_title",
+                        "loc-args": []
+                    },
+                    {
+                        "loc-key": "notif_volunteer_confirmed_msg",
+                        "loc-args": [volunteerName],
+                        "action-loc-key": "rsp"
+                    },
                     "confirmPendingVolunteer").then(function () {
                     res.success("Request claimed, ACL of volunteer " + volunteer.id + " updated to allow read access for user " + donor.id + ". confirmPendingVolunteer Push Notification sent to " + donor.id);
                 }, function (err) {
