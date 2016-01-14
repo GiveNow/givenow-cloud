@@ -47,45 +47,42 @@ Parse.Cloud.define("claimPickupRequest", function (req, res) {
 
 
 Parse.Cloud.define("confirmVolunteer", function (req, res) {
-    if (req.params.pickupRequestId && req.params.volunteerId) {
+    if (req.params.pickupRequestId) {
         var donor = req.user;
         var PickupRequest = Parse.Object.extend("PickupRequest");
         var query = new Parse.Query(PickupRequest);
         query.equalTo('objectId', req.params.pickupRequestId + "");
         query.equalTo('donor', donor.id);
         query.first().then(function (pickupRequest) {
-            // Get the volunteer user object.
-            var volunteerQuery = new Parse.Query(User);
-            volunteerQuery.equalTo('objectId', req.params.volunteerId);
-            query.first().then(function (volunteer) {
-                // Update the pickupRequest object with the confirmed volunteer.
-                pickupRequest.set("confirmedVolunteer", volunteer);
-                donor.id = pickupRequest.get("donor").id;
+            var volunteer = pickupRequest.get("pendingVolunteer");
 
-                // Let the volunteer read the donor's user object, because she will need it to call/msg/etc the donor.
-                var donorACL = new Parse.ACL(donor);
-                donorACL.setReadAccess(volunteer.id, true);
-                donor.setACL(volACL);
+            // Update the pickupRequest object with the confirmed volunteer.
+            pickupRequest.set("confirmedVolunteer", volunteer);
+            donor.id = pickupRequest.get("donor").id;
 
-                Parse.Object.saveAll([pickupRequest, volunteer]).then(function () {
-                    var donorName = donor.get("name");
+            // Let the volunteer read the donor's user object, because she will need it to call/msg/etc the donor.
+            var donorACL = new Parse.ACL(donor);
+            donorACL.setReadAccess(volunteer.id, true);
+            donor.setACL(volACL);
 
-                    // Send a push to the volunteer notifying them the donor confirmed them as a volunteer.
-                    generatePushToUser(volunteer,
-                        {
-                            "loc-key": "notif_volunteer_confirmed_title",
-                            "loc-args": []
-                        },
-                        {
-                            "loc-key": "notif_volunteer_confirmed_msg",
-                            "loc-args": donorName ? [donorName] : [],
-                            "action-loc-key": "rsp"
-                        },
-                        "confirmVolunteer").then(function () {
-                        res.success("Volunteer confirmed, ACL of donor " + donor.id + " updated to allow read access for user " + volunteer.id + ". confirmVolunteer Push Notification sent to " + volunteer.id);
-                    }, function (err) {
-                        res.error(err);
-                    });
+            Parse.Object.saveAll([pickupRequest, volunteer]).then(function () {
+                var donorName = donor.get("name");
+
+                // Send a push to the volunteer notifying them the donor confirmed them as a volunteer.
+                generatePushToUser(volunteer,
+                    {
+                        "loc-key": "notif_volunteer_confirmed_title",
+                        "loc-args": []
+                    },
+                    {
+                        "loc-key": "notif_volunteer_confirmed_msg",
+                        "loc-args": donorName ? [donorName] : [],
+                        "action-loc-key": "rsp"
+                    },
+                    "confirmVolunteer").then(function () {
+                    res.success("Volunteer confirmed, ACL of donor " + donor.id + " updated to allow read access for user " + volunteer.id + ". confirmVolunteer Push Notification sent to " + volunteer.id);
+                }, function (err) {
+                    res.error(err);
                 });
             });
         });
