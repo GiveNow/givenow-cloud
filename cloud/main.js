@@ -13,23 +13,23 @@ Parse.Cloud.define("claimPickupRequest", function (req, res) {
             pickupRequest.set("pendingVolunteer", volunteer);
 
             donor.id = pickupRequest.get("donor").id;
-            //Let the donor read the volunteer's user object
+            // Let the donor read the volunteer's user object
             var volACL = new Parse.ACL(volunteer);
             volACL.setReadAccess(donor.id, true);
             volunteer.setACL(volACL);
             Parse.Object.saveAll([pickupRequest, volunteer]).then(function () {
-                volunteerName = volunteer.get("name") || "A volunteer";
+                var volunteerName = volunteer.get("name");
                 generatePushToUser(donor,
                     {
-                        "loc-key": "notif_volunteer_confirmed_title",
+                        "loc-key": "notif_pickup_request_claimed_title",
                         "loc-args": []
                     },
                     {
-                        "loc-key": "notif_volunteer_confirmed_msg",
-                        "loc-args": [volunteerName],
+                        "loc-key": "notif_pickup_request_claimed_msg",
+                        "loc-args": volunteerName ? [volunteerName] : [],
                         "action-loc-key": "rsp"
                     },
-                    "confirmPendingVolunteer").then(function () {
+                    "claimPickupRequest").then(function () {
                     res.success("Request claimed, ACL of volunteer " + volunteer.id + " updated to allow read access for user " + donor.id + ". confirmPendingVolunteer Push Notification sent to " + donor.id);
                 }, function (err) {
                     res.error(err);
