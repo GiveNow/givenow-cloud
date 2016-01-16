@@ -166,9 +166,14 @@ function generatePushToUser(user, title, alert, type) {
     Parse.Push.send({
         where: pushQuery,
         data: {
-            title: title,
-            alert: alert,
-            type: type
+            "aps": {
+                "content-available": 1
+            },
+            "data": {
+                title: title,
+                alert: alert,
+                type: type
+            }
         }
     }, {
         success: function () {
