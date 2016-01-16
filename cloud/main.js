@@ -111,7 +111,7 @@ Parse.Cloud.define("pickupDonation", function (req, res) {
             // Create new Donation object
             var Donation = Parse.Object.extend("Donation");
             var newDonation = new Donation();
-            newDonation.set("donor", donor.id);
+            newDonation.set("donor", donor);
             newDonation.set("donationCategories", pickupRequest.get("donationCategories"));
             // Readable by the volunteer and donor
             var donationACL = new Parse.ACL();
@@ -123,7 +123,7 @@ Parse.Cloud.define("pickupDonation", function (req, res) {
             newDonation.save().then(function (donation) {
                 console.log("saving pickup request");
 
-                pickupRequest.set("donation", donation.id);
+                pickupRequest.set("donation", donation);
                 pickupRequest.save().then(function () {
                     var volunteerName = volunteer.get("name");
                     console.log("newPickupREquestSaved");
@@ -140,11 +140,13 @@ Parse.Cloud.define("pickupDonation", function (req, res) {
                             "action-loc-key": "rsp"
                         },
                         "pickupDonation").then(function () {
-                        res.success("Request picked up. New donation object " + donation.id + "created. pickupDonation Push Notification sent to " + donor.id);
+                        res.success("Request picked up. New donation object " + donation.id + " created. pickupDonation Push Notification sent to " + donor.id);
                     }, function (err) {
                         res.error(err);
                     });
                 });
+            }, function (err) {
+                res.error(err)
             });
         });
     } else {
