@@ -1,5 +1,11 @@
 Parse.Cloud.define("claimPickupRequest", function (request, response) {
-    claimPickup().then(function (result) {
+    if (!request.params.pickupRequestId) {
+        return response.error('Invalid parameters.');
+    }
+    var volunteer = req.user;
+    var pickupRequestId = request.params.pickupRequestId;
+
+    claimPickup(pickupRequestId, volunteer).then(function (result) {
         response.success(result);
     }, function (error) {
         response.error(error);
@@ -13,20 +19,14 @@ let handleError = function (promise) {
     };
 };
 
-let claimPickup = function () {
+let claimPickup = function (pickupRequestId, volunteer) {
     var promise = new Parse.Promise();
     var handleError = handleError(promise);
 
-    //TODO req is not in scope here
-    if (!req.params.pickupRequestId) {
-        return promise.reject('Invalid parameters.');
-    }
-
-    var volunteer = req.user;
     var donor = new Parse.User();
     var pickupRequest;
 
-    getPickupRequest().then(function (pickup) {
+    getPickupRequest(pickupRequestId).then(function (pickup) {
         pickupRequest = pickup;
         return setPickupVolunteer(pickupRequest, volunteer)
     }).then(function () {
@@ -42,10 +42,10 @@ let claimPickup = function () {
     return promise;
 };
 
-let getPickupRequest = function () {
+let getPickupRequest = function (pickupRequestId) {
     var PickupRequest = Parse.Object.extend("PickupRequest");
     var query = new Parse.Query(PickupRequest);
-    query.equalTo('objectId', req.params.pickupRequestId + "");
+    query.equalTo('objectId', pickupRequestId + "");
 
     return query.first()
 };
