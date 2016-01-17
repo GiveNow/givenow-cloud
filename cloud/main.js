@@ -2,6 +2,8 @@ require("cloud/app.js");
 
 require("cloud/login.js");
 
+require("cloud/services/PickupService.js");
+
 Parse.Cloud.define("confirmVolunteer", function (req, res) {
     if (req.params.pickupRequestId) {
         var donor = req.user;
