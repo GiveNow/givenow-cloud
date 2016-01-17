@@ -32,6 +32,8 @@ let claimPickup = function (pickupRequestId, volunteer) {
     }).then(function () {
         return setDonorPermissions(pickupRequest, volunteer)
     }).then(function () {
+        return savePickupAndVolunteer(pickupRequest, volunteer)
+    }).then(function () {
         return sendPushToDonor()
     }).then(function () {
         promise.resolve("Request claimed. ACL of volunteer " + volunteer.id + " updated to allow read access for user " + donor.id + ". claimPickupRequest Push Notification sent to " + donor.id);
@@ -68,7 +70,7 @@ let setDonorPermissions = function (pickupRequest, volunteer) {
 };
 
 let savePickupAndVolunteer = function (pickupRequest, volunteer) {
-    Parse.Object.saveAll([pickupRequest, volunteer]);
+    return Parse.Object.saveAll([pickupRequest, volunteer]);
 };
 
 let notifyDonorPickupClaimed = function (pickupRequest, volunteer) {
