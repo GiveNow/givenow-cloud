@@ -1,4 +1,4 @@
-require("cloud/services/PushService.js");
+var pushService = require("cloud/services/PushService.js");
 
 Parse.Cloud.define("claimPickupRequest", function (request, response) {
     if (!request.params.pickupRequestId) {
@@ -77,7 +77,7 @@ var savePickupAndVolunteer = function (pickupRequest, volunteer) {
 var notifyDonorPickupClaimed = function (volunteer, donor) {
     var volunteerName = volunteer.get("name");
     // Send a push to the donor notifying them their pickup request has been claimed.
-    generatePushToUser(donor,
+    pushService.generatePushToUser(donor,
         {
             "loc-key": "notif_pickup_request_claimed_title",
             "loc-args": []

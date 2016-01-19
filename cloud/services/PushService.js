@@ -1,4 +1,4 @@
-var generatePushToUser = function (user, title, alert, type) {
+function generatePushToUser(user, title, alert, type) {
     //Set push query
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.equalTo("user", user);
