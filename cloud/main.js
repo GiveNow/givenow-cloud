@@ -129,11 +129,9 @@ Parse.Cloud.define("pickupDonation", function (req, res) {
 
             // Remove donor id from volunteer ACL
             volunteer.set("ACL", removeIdFromACL(donor.id, volunteer.get("ACL")));
-
-            Parse.Object.saveAll([donor, volunteer]).then(function () {
+            volunteer.save().then(function (volunteer) {
                 newDonation.save().then(function (donation) {
-                    console.log("saving pickup request");
-
+                    // Stick the new Donation objecti nto the pickupRequest
                     pickupRequest.set("donation", donation);
                     pickupRequest.save().then(function () {
                         var volunteerName = volunteer.get("name");
