@@ -30,7 +30,9 @@ var claimPickup = function (pickupRequestId, volunteer) {
 
     getPickupRequest(pickupRequestId).then(function (pickup) {
         pickupRequest = pickup;
-        donor.id = pickupRequest.get("donor").id;
+        return pickupRequest.get("donor").fetch();
+    }).then(function (fetchedDonor) {
+        donor = fetchedDonor;
         return setPickupVolunteer(pickupRequest, volunteer, donor)
     }).then(function () {
         return setDonorPermissions(volunteer, donor)
@@ -77,7 +79,7 @@ var savePickupAndVolunteer = function (pickupRequest, volunteer) {
 var notifyDonorPickupClaimed = function (volunteer, donor) {
     var volunteerName = volunteer.get("name");
     // Send a push to the donor notifying them their pickup request has been claimed.
-    pushService.generatePushToUser(donor,
+    return pushService.generatePushToUser(donor,
         {
             "loc-key": "notif_pickup_request_claimed_title",
             "loc-args": []

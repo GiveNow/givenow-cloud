@@ -1,5 +1,6 @@
 //var language = "en";
 //var languages = ["en", "es", "ja", "kr", "pt-BR"];
+var smsService = require("cloud/services/SmsService.js");
 
 
 Parse.Cloud.define("sendCode", function (req, res) {
@@ -24,7 +25,7 @@ Parse.Cloud.define("sendCode", function (req, res) {
                 result.setPassword(config.get("secretPasswordToken") + num);
                 //			result.set("language", language);
                 result.save().then(function () {
-                    return sendCodeSms(phoneNumber, num, body);
+                    return smsService.sendCodeSms(phoneNumber, num, body);
                 }).then(function () {
                     res.success("User " + phoneNumber + " exists.");
                 }, function (err) {
@@ -36,8 +37,8 @@ Parse.Cloud.define("sendCode", function (req, res) {
                 user.setPassword(config.get("secretPasswordToken") + num);
                 //			user.set("language", language);
                 user.setACL({});
-                user.save().then(function (a) {
-                    return sendCodeSms(phoneNumber, num, body);
+                user.save().then(function (savedUser) {
+                    return smsService.sendCodeSms(phoneNumber, num, body);
                 }).then(function () {
                     res.success("Created new user " + phoneNumber);
                 }, function (err) {
@@ -49,27 +50,6 @@ Parse.Cloud.define("sendCode", function (req, res) {
         res.error(err);
     });
 });
-
-function sendCodeSms(phoneNumber, code, body) {
-    var promise = new Parse.Promise();
-    Parse.Config.get().then(function (config) {
-        var twilio = require('twilio')(config.get("twilioAccountSid"), config.get("twilioAuthToken"));
-        twilio.sendSms({
-            to: '+' + phoneNumber.replace(/\D/g, ''),
-            from: config.get("twilioPhoneNumber").replace(/\D/g, ''),
-            body: body.replace(/{code}/, code) //TODO add a link, for example, verify.givenow.io and then catch it with an intent filter
-        }, function (err, responseData) {
-            if (err) {
-                console.log(err);
-                promise.reject(err.message);
-            } else {
-                promise.resolve();
-            }
-        });
-    });
-
-    return promise;
-}
 
 Parse.Cloud.define("logIn", function (req, res) {
     Parse.Cloud.useMasterKey();
