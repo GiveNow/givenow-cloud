@@ -30,12 +30,10 @@ var claimPickup = function (pickupRequestId, volunteer) {
 
     getPickupRequest(pickupRequestId).then(function (pickup) {
         pickupRequest = pickup;
-        return pickupRequest.get("donor").fetch();
-    }).then(function (fetchedDonor) {
-        donor = fetchedDonor;
+        donor = pickupRequest.get("donor");
         return setPickupVolunteer(pickupRequest, volunteer, donor)
     }).then(function () {
-        return setDonorPermissions(volunteer, donor)
+        return grantReadAccessToDonor(volunteer, donor)
     }).then(function () {
         return savePickupAndVolunteer(pickupRequest, volunteer)
     }).then(function () {
@@ -63,7 +61,7 @@ var setPickupVolunteer = function (pickupRequest, volunteer, donor) {
     return Parse.Promise.as(donor.id);
 };
 
-var setDonorPermissions = function (volunteer, donor) {
+var grantReadAccessToDonor = function (volunteer, donor) {
     var promise = new Parse.Promise();
     // Let the donor read the volunteer's user object, so that she can read the volunteer's name.
     var volACL = new Parse.ACL(volunteer);
@@ -76,19 +74,18 @@ var savePickupAndVolunteer = function (pickupRequest, volunteer) {
     return Parse.Object.saveAll([pickupRequest, volunteer]);
 };
 
+
 var notifyDonorPickupClaimed = function (volunteer, donor) {
     var volunteerName = volunteer.get("name");
     // Send a push to the donor notifying them their pickup request has been claimed.
-    return pushService.generatePushToUser(donor,
-        {
-            "loc-key": "notif_pickup_request_claimed_title",
-            "loc-args": []
-        },
-        {
-            "loc-key": "notif_pickup_request_claimed_msg",
-            "loc-args": volunteerName ? [volunteerName] : [],
-            "action-loc-key": "rsp"
-        },
+
+    return pushService.sendPushToUser(donor,
+        "notif_pickup_request_claimed_title",
+        [],
+        "",
+        "notif_pickup_request_claimed_msg",
+        volunteerName ? [volunteerName] : [],
+        "default_volunteer_name",
         "claimPickupRequest");
 };
 

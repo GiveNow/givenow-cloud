@@ -28,7 +28,7 @@ Parse.Cloud.define("confirmVolunteer", function (req, res) {
                     var address = pickupRequest.get("address");
 
                     // Send a push to the volunteer notifying them the donor confirmed them as a volunteer.
-                    pushService.generatePushToUser(volunteer,
+                    pushService.sendPushToUser(volunteer,
                         {
                             "loc-key": "notif_volunteer_confirmed_title",
                             "loc-args": []
@@ -98,7 +98,7 @@ Parse.Cloud.define("pickupDonation", function (req, res) {
                         console.log("newPickupRequestSaved");
 
                         // Send a push to the donor notifying them their pickup request has been picked up
-                        pushService.generatePushToUser(donor,
+                        pushService.sendPushToUser(donor,
                             {
                                 "loc-key": "notif_pickup_complete_title",
                                 "loc-args": []
@@ -157,7 +157,7 @@ Parse.Cloud.define("markComplete", function (req, res) {
 );
 
 
-//function generatePushToUser(user, title, alert, type) {
+//function sendPushToUser(user, title, alert, type) {
 //    //Set push query
 //    var pushQuery = new Parse.Query(Parse.Installation);
 //    pushQuery.equalTo("user", user);
