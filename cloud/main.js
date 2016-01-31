@@ -6,57 +6,8 @@ require("cloud/services/PickupService.js");
 
 var pushService = require("cloud/services/PushService.js");
 
-Parse.Cloud.define("confirmVolunteer", function (req, res) {
-    if (req.params.pickupRequestId) {
-        var donor = req.user;
-        var PickupRequest = Parse.Object.extend("PickupRequest");
-        var query = new Parse.Query(PickupRequest);
-        query.equalTo('objectId', req.params.pickupRequestId + "");
-        query.equalTo('donor', donor);
-        query.first().then(function (pickupRequest) {
-            var volunteer = pickupRequest.get("pendingVolunteer");
 
-            // Update the pickupRequest object with the confirmed volunteer.
-
-            pickupRequest.set("confirmedVolunteer", volunteer);
-            pickupRequest.save().then(function (pickupRequest) {
-                // Let the volunteer read the donor's user object, because she will need it to call/msg/etc the donor.
-                donor.setACL(addIdToACL(volunteer.id, donor.get("ACL")));
-
-                donor.save().then(function (donor) {
-                    var donorName = donor.get("name");
-                    var address = pickupRequest.get("address");
-
-                    // Send a push to the volunteer notifying them the donor confirmed them as a volunteer.
-                    pushService.sendPushToUser(volunteer,
-                        {
-                            "loc-key": "notif_volunteer_confirmed_title",
-                            "loc-args": []
-                        },
-                        donorName ? {
-                            "loc-key": "notif_volunteer_confirmed_msg",
-                            "loc-args": [donorName, address],
-                            "action-loc-key": "rsp"
-                        }
-                            :
-                        {
-                            "loc-key": "notif_volunteer_confirmed_msg_no_name",
-                            "loc-args": [address],
-                            "action-loc-key": "rsp"
-                        },
-                        "confirmVolunteer").then(function () {
-                        res.success("Volunteer confirmed. ACL of donor " + donor.id + " updated to allow read access for user " + volunteer.id + ". confirmVolunteer Push Notification sent to " + volunteer.id);
-                    }, function (err) {
-                        res.error(err);
-                    });
-                });
-            });
-        });
-    } else {
-        res.error('Invalid parameters.');
-    }
-});
-
+//TODO remove these from this file
 var addIdToACL = function (id, acl) {
     console.log("add " + id + " to acl " + acl);
     acl.setReadAccess(id, true);

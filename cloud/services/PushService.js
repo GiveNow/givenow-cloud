@@ -23,11 +23,13 @@ module.exports.sendPushToUser = function (user, titlekey, titleArgs, titleDefaul
                                 // The SMS uses the language from the most recently used installation for this user.
                                 return locService.getMostRecentLangForUser(user).then(function (lang) {
                                     lang = lang.replace("-", "");
-                                    console.log("localertdefault:" + locAlertDefault.get(lang));
+                                    var titleDefault = locTitleDefault === undefined ? "" : locTitleDefault.get(lang);
+                                    var alertDefault = locAlertDefault === undefined ? "" : locAlertDefault.get(lang);
+                                    console.log("localertdefault:" + alertDefault);
                                     return module.exports.sendSmsToUser(
                                         user,
-                                        formatArgs(locTitle.get(lang), titleArgs, locTitleDefault ? locTitleDefault.get(lang) : ""),
-                                        formatArgs(locAlert.get(lang), alertArgs, locAlertDefault ? locAlertDefault.get(lang) : "") + " \n" + signature.get(lang)
+                                        formatArgs(locTitle.get(lang), titleArgs, titleDefault),
+                                        formatArgs(locAlert.get(lang), alertArgs, alertDefault) + " \n" + signature.get(lang)
                                     );
                                 });
 
@@ -45,8 +47,6 @@ module.exports.sendPushToUser = function (user, titlekey, titleArgs, titleDefaul
 
 
 var sendLocalizedPush = function (user, locTitle, titleArgs, locTitleDefault, locAlert, alertArgs, locAlertDefault) {
-    console.log("Sending push " + formatArgs(locTitle.get("enUS"), titleArgs) + " / " + formatArgs(locAlert.get("enUS"), alertArgs) + " to " + user.get("username"));
-
     var englishQuery = new Parse.Query(Parse.Installation);
     englishQuery.equalTo("user", user);
     englishQuery.equalTo("localeIdentifier", "en-US");
