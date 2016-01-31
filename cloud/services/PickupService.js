@@ -28,6 +28,21 @@ Parse.Cloud.define("confirmVolunteer", function (request, response) {
     });
 });
 
+Parse.Cloud.define("pickupDonation", function (request, response) {
+    if (!request.params.pickupRequestId) {
+        return response.error('Invalid parameters.');
+    }
+    var volunteer = request.user;
+    var pickupRequestId = request.params.pickupRequestId;
+
+    pickupDonation(pickupRequestId, volunteer).then(function (result) {
+        response.success(result);
+    }, function (error) {
+        response.error(error);
+    });
+});
+
+
 //var handleError = function (promise) {
 //    return function (error) {
 //        console.log("error: " + error);
@@ -47,7 +62,7 @@ var claimPickup = function (pickupRequestId, volunteer) {
         donor = pickupRequest.get("donor");
         return setPendingVolunteer(pickupRequest, volunteer)
     }).then(function () {
-        return grantReadAccessToDonor(volunteer, donor)
+        return letDonorReadVolunteer(volunteer, donor)
     }).then(function () {
         return notifyDonorPickupClaimed(volunteer, donor)
     }).then(function () {
@@ -59,7 +74,6 @@ var claimPickup = function (pickupRequestId, volunteer) {
     return promise;
 };
 
-
 var confirmVolunteer = function (pickupRequestId, donor) {
     var promise = new Parse.Promise();
 
@@ -70,14 +84,40 @@ var confirmVolunteer = function (pickupRequestId, donor) {
         pickupRequest = pickup;
         volunteer = pickupRequest.get("pendingVolunteer");
         return setConfirmedVolunteer(pickupRequest, volunteer)
-    }).then(function (pickupRequest) {
-        return grantReadAccessToVolunteer(donor, volunteer);
+    }).then(function () {
+        return letVolunteerReadDonor(donor, volunteer);
     }).then(function (donor) {
-        notifyVolunteerTheyAreConfirmed(pickupRequest, volunteer, donor).then(function () {
-            promise.resolve("Volunteer confirmed. ACL of donor " + donor.id + " updated to allow read access for user " + volunteer.id + ". confirmVolunteer Push Notification sent to " + volunteer.id);
-        }, function (err) {
-            promise.reject(err);
-        });
+        return notifyVolunteerTheyAreConfirmed(pickupRequest, volunteer, donor)
+    }).then(function () {
+        promise.resolve("Volunteer confirmed. ACL of donor " + donor.id + " updated to allow read access for user " + volunteer.id + ". confirmVolunteer Push Notification sent to " + volunteer.id);
+    }, function (err) {
+        promise.reject(err);
+    });
+
+    return promise;
+};
+
+var pickupDonation = function (pickupRequestId, volunteer) {
+    var promise = new Parse.Promise();
+    var donor;
+    var pickupRequest;
+    var newDonation;
+
+    getPickupRequest(pickupRequestId).then(function (pickup) {
+        pickupRequest = pickup;
+        donor = pickupRequest.get("donor");
+        newDonation = createDonationObject(pickupRequest, donor, volunteer);
+        return dontLetDonorReadVolunteer(volunteer, donor)
+    }).then(function () {
+        return newDonation.save()
+    }).then(function (donation) {
+        return setDonation(pickupRequest, donation);
+    }).then(function () {
+        return notifyDonorPickupComplete(volunteer, donor);
+    }).then(function () {
+        promise.resolve("Request picked up. New donation object " + newDonation.id + " created. pickupDonation Push Notification sent to " + donor.id);
+    }, function (err) {
+        promise.reject(err);
     });
 
     return promise;
@@ -101,16 +141,39 @@ var setConfirmedVolunteer = function (pickupRequest, volunteer) {
     return pickupRequest.save();
 };
 
-var grantReadAccessToDonor = function (volunteer, donor) {
+var createDonationObject = function (pickupRequest, donor, volunteer) {
+    // Create new Donation object, readable by the volunteer and donor
+    var Donation = Parse.Object.extend("Donation");
+    var newDonation = new Donation();
+    newDonation.set("donor", donor);
+    newDonation.set("donationCategories", pickupRequest.get("donationCategories"));
+    newDonation.setACL(addIdToACL(volunteer.id, addIdToACL(donor.id, new Parse.ACL())));
+    console.log("newDonationSet");
+    return newDonation;
+};
+
+var setDonation = function (pickupRequest, donation) {
+    // Stick the new Donation object into the pickupRequest
+    pickupRequest.set("donation", donation);
+    return pickupRequest.save();
+};
+
+var letDonorReadVolunteer = function (volunteer, donor) {
     // Let the donor read the volunteer's user object, so that she can read the volunteer's name.
     volunteer.setACL(addIdToACL(donor.id, volunteer.get("ACL")));
     return volunteer.save();
 };
 
-var grantReadAccessToVolunteer = function (donor, volunteer) {
+var letVolunteerReadDonor = function (donor, volunteer) {
     // Let the volunteer read the donor's user object, because she will need it to call/msg/etc the donor.
     donor.setACL(addIdToACL(volunteer.id, donor.get("ACL")));
     return donor.save();
+};
+
+var dontLetDonorReadVolunteer = function (volunteer, donor) {
+    // Remove donor id from volunteer ACL
+    volunteer.set("ACL", removeIdFromACL(donor.id, volunteer.get("ACL")));
+    return volunteer.save();
 };
 
 var notifyDonorPickupClaimed = function (volunteer, donor) {
@@ -142,6 +205,21 @@ var notifyVolunteerTheyAreConfirmed = function (pickupRequest, volunteer, donor)
         "confirmVolunteer");
 };
 
+
+var notifyDonorPickupComplete = function (volunteer, donor) {
+    var volunteerName = volunteer.get("name");
+    console.log("newPickupRequestSaved");
+
+    // Send a push to the donor notifying them their pickup request has been picked up
+    return pushService.sendPushToUser(donor,
+        "notif_pickup_complete_title",
+        [],
+        "",
+        "notif_pickup_complete_msg",
+        volunteerName ? [volunteerName] : [],
+        "default_volunteer_name",
+        "pickupDonation");
+};
 
 var addIdToACL = function (id, acl) {
     console.log("add " + id + " to acl " + acl);
