@@ -43,6 +43,18 @@ Parse.Cloud.define("pickupDonation", function (request, response) {
 });
 
 
+Parse.Cloud.define("markComplete", function (request, response) {
+    if (!request.params.pickupRequestId) {
+        return response.error('Invalid parameters.');
+    }
+    var donor = request.user;
+    markComplete(request.params.pickupRequestId, donor).then(function (result) {
+        response.success(result);
+    }, function (error) {
+        response.error(error);
+    });
+});
+
 //var handleError = function (promise) {
 //    return function (error) {
 //        console.log("error: " + error);
@@ -123,6 +135,24 @@ var pickupDonation = function (pickupRequestId, volunteer) {
     return promise;
 };
 
+var markComplete = function (pickupRequestId, donor) {
+    var promise = new Parse.Promise();
+
+    getPickupRequest(pickupRequestId).then(function (pickupRequest) {
+        return markPickupRequestComplete(pickupRequest);
+    }).then(function (pickupRequest) {
+        var volunteer = pickupRequest.get("confirmedVolunteer");
+
+        return dontLetVolunteerReadDonor(volunteer, donor);
+    }).then(function () {
+        promise.resolve("Pickup request " + pickupRequestId + " marked complete.");
+    }, function (err) {
+        promise.reject(err);
+    });
+
+    return promise;
+};
+
 var getPickupRequest = function (pickupRequestId) {
     var PickupRequest = Parse.Object.extend("PickupRequest");
     var query = new Parse.Query(PickupRequest);
@@ -158,6 +188,12 @@ var setDonation = function (pickupRequest, donation) {
     return pickupRequest.save();
 };
 
+
+var markPickupRequestComplete = function (pickupRequest) {
+    // Mark the pickupRequest object as complete. Currently, by setting it to inactive.
+    pickupRequest.set("isActive", false);
+    return pickupRequest.save();
+};
 var letDonorReadVolunteer = function (volunteer, donor) {
     // Let the donor read the volunteer's user object, so that she can read the volunteer's name.
     volunteer.setACL(addIdToACL(donor.id, volunteer.get("ACL")));
@@ -174,6 +210,12 @@ var dontLetDonorReadVolunteer = function (volunteer, donor) {
     // Remove donor id from volunteer ACL
     volunteer.set("ACL", removeIdFromACL(donor.id, volunteer.get("ACL")));
     return volunteer.save();
+};
+
+var dontLetVolunteerReadDonor = function (volunteer, donor) {
+    // Remove volunteer id from donor ACL
+    donor.set("ACL", removeIdFromACL(volunteer.id, donor.get("ACL")));
+    return donor.save();
 };
 
 var notifyDonorPickupClaimed = function (volunteer, donor) {
