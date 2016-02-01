@@ -36,7 +36,7 @@ module.exports.sendPushToUser = function (user, titlekey, titleArgs, titleDefaul
                             });
                         } else {
                             // Otherwise, user has pushEnabled == true or undefined. Send a push.
-                            return sendLocalizedPush(user, locTitle, titleArgs, locTitleDefault, locAlert, alertArgs, locAlertDefault);
+                            return sendLocalizedPush(user, locTitle, titleArgs, locTitleDefault, locAlert, alertArgs, locAlertDefault, type);
                         }
                     });
                 });
@@ -46,7 +46,7 @@ module.exports.sendPushToUser = function (user, titlekey, titleArgs, titleDefaul
 };
 
 
-var sendLocalizedPush = function (user, locTitle, titleArgs, locTitleDefault, locAlert, alertArgs, locAlertDefault) {
+var sendLocalizedPush = function (user, locTitle, titleArgs, locTitleDefault, locAlert, alertArgs, locAlertDefault, type) {
     var englishQuery = new Parse.Query(Parse.Installation);
     englishQuery.equalTo("user", user);
     englishQuery.equalTo("localeIdentifier", "en-US");
@@ -60,12 +60,14 @@ var sendLocalizedPush = function (user, locTitle, titleArgs, locTitleDefault, lo
     return sendPush(
         englishQuery,
         formatArgs(locTitle.get("enUS"), titleArgs, locTitleDefault ? locTitleDefault.get("enUS") : ""),
-        formatArgs(locAlert.get("enUS"), alertArgs, locAlertDefault ? locAlertDefault.get("enUS") : "")
+        formatArgs(locAlert.get("enUS"), alertArgs, locAlertDefault ? locAlertDefault.get("enUS") : ""),
+        type
     ).then(function () {
         return sendPush(
             germanQuery,
             formatArgs(locTitle.get("deDE"), titleArgs, locTitleDefault ? locTitleDefault.get("deDE") : ""),
-            formatArgs(locAlert.get("deDE"), alertArgs, locAlertDefault ? locAlertDefault.get("deDE") : ""));
+            formatArgs(locAlert.get("deDE"), alertArgs, locAlertDefault ? locAlertDefault.get("deDE") : ""),
+            type);
     });
 };
 
